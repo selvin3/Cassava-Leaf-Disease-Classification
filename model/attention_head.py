@@ -64,8 +64,3 @@ class AttentionHead(nn.Module):
         x = self.dropout2(x)
         x = nn.Softmax(self.fc2(x))
         return x
-
-model = AttentionHead()
-model.eval()
-tensor2 = torch.randn(10, 512, 8, 8)
-model(tensor2)
