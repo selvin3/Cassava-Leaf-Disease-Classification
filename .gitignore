@@ -163,4 +163,4 @@ cython_debug/
 
 
 # Files to ignore
-kaggle.json
+/data
