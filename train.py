@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import models
 from torchvision.transforms import InterpolationMode, transforms
 
-from data.load_data import CassavaLeafDataset
+from load_data import CassavaLeafDataset
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -105,8 +105,8 @@ def train(
     # Define transform.
     transform = transforms.Compose(
         [
-            transforms.Resize([600], interpolation=InterpolationMode.BICUBIC),
             transforms.ToTensor(),
+            transforms.Resize([224], interpolation=InterpolationMode.BICUBIC),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
             ),
