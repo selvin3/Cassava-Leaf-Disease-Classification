@@ -22,6 +22,7 @@ class CassavaLeafDataset(Dataset):
     ) -> None:
         """Intialize required variables."""
         self.df = pd.read_csv(csv_path)
+        self.df = self.df.iloc[:10]
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
