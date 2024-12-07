@@ -37,7 +37,7 @@ _RESULT_DIR = flags.DEFINE_string(
 )
 
 _BATCH_SIZE = flags.DEFINE_integer(
-    "batch_size", 32, "Training data batch size."
+    "batch_size", 4, "Training data batch size."
 )
 
 _NUM_EPOCHS = flags.DEFINE_integer(
@@ -52,6 +52,8 @@ weights_mapping_dict = {
 
 def save_mode(model: nn.Module, result_dir: str):
     """Save model at specific path."""
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
     path = os.path.join(result_dir, "model.pth")
     torch.save(model.state_dict(), path)
 
@@ -142,11 +144,12 @@ def train(
 
         for batch_index, (images, labels) in enumerate(train_loader):
             # Forward
-            prediction = model(images.to(device=device))
+            images = images.to(device)
+            labels = labels.to(device)
+            prediction = model(images)
             loss = criterion(prediction, labels)
             if loss == 0:
                 continue
-            losses.append(loss)
 
             # TODO: learn
             nn.utils.clip_grad_norm_(model.parameters(), 0.1)
@@ -155,22 +158,24 @@ def train(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            losses.append(float(loss))
             scheduler.step(np.mean(losses))
 
             if loss <= statistics.mean(losses):
                 save_mode(model=model, result_dir=result_dir)
             del loss
 
-            # Check on validation set
-            if epoch % 5 == 0:
-                # check validation
-                acc = validation(
-                    model=model, device=device, dataloader=validation_loader
-                )
-                logging.info(
-                    f"For a epoch number {epoch} accuracy on validation set is {acc}%"  # noqa: E501
-                )
-                pass
+        # Check on validation set
+        if (epoch % 5 == 0) and (epoch != 0):
+            acc = validation(
+                model=model, device=device, dataloader=validation_loader
+            )
+            logging.info(
+                f"For a epoch number {epoch} accuracy on validation set is {acc}%."  # noqa: E501
+            )
+            logging.info(
+                f"For a epoch number {epoch} loss is {losses[-1]}."
+            )
 
 
 def main(argv: Sequence[str]) -> None:

@@ -35,7 +35,6 @@ class CassavaLeafDataset(Dataset):
         image_name = self.df["image_id"][index]
         label = self.df["label"][index]
         image = io.imread(os.path.join(self.root_dir, image_name))
-        image = np.moveaxis(image, -1, 0)
 
         # Apply transform if available.
         if self.transform:
