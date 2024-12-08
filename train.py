@@ -16,6 +16,7 @@ from torchvision import models
 from torchvision.transforms import InterpolationMode, transforms
 
 from load_data import CassavaLeafDataset
+from model.attention_head import AttentionHead
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -44,6 +45,14 @@ _NUM_EPOCHS = flags.DEFINE_integer(
     "num_epochs", 10, "Number of epoch for training a model."
 )
 
+_NUM_CLASS = flags.DEFINE_integer(
+    "num_class", 5, "Number of classification class."
+)
+
+_IS_ATTENTION = flags.DEFINE_bool(
+    "is_attention", None, "Does attention head to attached or not."
+)
+
 # Model and default weight mapping dictionary
 weights_mapping_dict = {
     "efficientnet_b7": "EfficientNet_B7_Weights.IMAGENET1K_V1"
@@ -58,15 +67,24 @@ def save_mode(model: nn.Module, result_dir: str):
     torch.save(model.state_dict(), path)
 
 
-def load_model(model_name: str) -> torch.nn.Module:
+def load_model(
+    model_name: str, is_attention: bool, num_class: int
+) -> torch.nn.Module:
     """Load torch model with weights."""
     weights = weights_mapping_dict.get(model_name, "")
     model_constructor = getattr(models, model_name)
     model = model_constructor(weights=weights)
-    model.classifier = nn.Sequential(
-        nn.Dropout(p=0.5, inplace=True),
-        nn.Linear(model.classifier[1].in_features, 5),
-    )
+    if is_attention:
+        model = model.features
+        model.Adjust = nn.Conv2d(
+            in_channels=2560, out_channels=512, kernel_size=1
+        )
+        model.AttentionHead = AttentionHead(num_class=num_class)
+    else:
+        model.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(model.classifier[1].in_features, num_class),
+        )
     return model
 
 
@@ -97,12 +115,16 @@ def train(
     result_dir: str,
     batch_size: int,
     num_epochs: int,
+    num_class: int,
+    is_attention: bool,
 ) -> None:
     """Model training function."""
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Load model
-    model = load_model(model_name=model_name)
+    model = load_model(
+        model_name=model_name, num_class=num_class, is_attention=is_attention
+    )
     model.to(device=device)
     # Define transform.
     transform = transforms.Compose(
@@ -173,9 +195,7 @@ def train(
             logging.info(
                 f"For a epoch number {epoch} accuracy on validation set is {acc}%."  # noqa: E501
             )
-            logging.info(
-                f"For a epoch number {epoch} loss is {losses[-1]}."
-            )
+            logging.info(f"For a epoch number {epoch} loss is {losses[-1]}.")
 
 
 def main(argv: Sequence[str]) -> None:
@@ -191,6 +211,8 @@ def main(argv: Sequence[str]) -> None:
         result_dir=_RESULT_DIR.value,
         batch_size=_BATCH_SIZE.value,
         num_epochs=_NUM_EPOCHS.value,
+        num_class=_NUM_CLASS.value,
+        is_attention=_IS_ATTENTION.value,
     )
 
 

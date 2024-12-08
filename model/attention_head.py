@@ -8,7 +8,7 @@ import torch.nn.functional as F
 class AttentionHead(nn.Module):
     """Attention model class."""
 
-    def __init__(self) -> None:
+    def __init__(self, num_class: int) -> None:
         """Intialize the model layers."""
         super(AttentionHead, self).__init__()
 
@@ -35,10 +35,11 @@ class AttentionHead(nn.Module):
         self.dropout1 = nn.Dropout(p=0.2)
         self.fc1 = nn.Linear(in_features=512, out_features=128)
         self.dropout2 = nn.Dropout(p=0.2)
-        self.fc2 = nn.Linear(in_features=128, out_features=5)
+        self.fc2 = nn.Linear(in_features=128, out_features=num_class)
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         """Forward pass for the attention head."""
+        print(x.shape)
         x = self.bn1(x)
         bn_residual = x
         x = F.relu(self.conv1(x))
@@ -62,5 +63,5 @@ class AttentionHead(nn.Module):
         x = self.dropout1(x)
         x = F.relu(self.fc1(x))
         x = self.dropout2(x)
-        x = nn.Softmax(self.fc2(x))
+        x = self.fc2(x)
         return x
